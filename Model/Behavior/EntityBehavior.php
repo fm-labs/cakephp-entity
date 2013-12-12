@@ -1,8 +1,10 @@
 <?php
 App::uses('ModelBehavior', 'Model');
-App::uses('EntitySet', 'Entity.Lib');
+App::uses('EntityData', 'Entity.Lib');
 
 class EntityBehavior extends ModelBehavior {
+
+	protected $_runtime = array();
 
 	public function setup(Model $model, $config = array()) {
 		if (!isset($this->settings[$model->alias])) {
@@ -58,6 +60,12 @@ class EntityBehavior extends ModelBehavior {
 		return $entity;
 	}
 
+	public function beforeFind(Model $model, $query) {
+		if (isset($query['list'])) {
+			$this->_runtime[$model->alias]['skipEntity'] = true;
+		}
+	}
+
 /**
  * @param Model $model
  * @param mixed $results
@@ -66,14 +74,23 @@ class EntityBehavior extends ModelBehavior {
  */
 	public function afterFind(Model $model, $results, $primary) {
 		$assoc = $model->getAssociated();
+
+		// check runtime settings
+		$_runtime =& $this->_runtime[$model->alias];
+		if (isset($_runtime['skipEntity']) && $_runtime['skipEntity'] == true) {
+			$_runtime['skipEntity'] = false;
+			return $results;
+		}
 		if ($primary) {
-			if (!isset($results[0]) || !isset($results[0][$model->alias])) {
+			if (!isset($results[0])
+				|| !isset($results[0][$model->alias])
+				|| !isset($results[0][$model->alias]['id'])) {
 				return $results;
 			}
 			$_results = array();
 			foreach ($results as $result) {
 				//
-				// The EntitySet is an object wrapper for the standard model result array
+				// The EntityData is an object wrapper for the standard model result array
 				//
 				// Provides ArrayAccess for 'CakePHP-wayish' data access
 				// Can be used like this: $result['ModelAlias']['field']
@@ -81,11 +98,12 @@ class EntityBehavior extends ModelBehavior {
 				// Provides OO-wayish data access
 				// Can be used like this: $result->ModelAlias->field
 				//
-				$_set = new EntitySet();
+				$_set = new EntityData();
 				foreach ($result as $alias => $aliasResult) {
 					if ($model->alias === $alias) {
 						$entity = $this->entityCreate($model);
 						$entity->map($result);
+						$entity->afterFind($model);
 					} elseif (array_key_exists($alias, $assoc)) {
 						// Recursive entity conversion only works,
 						// when the EntityBehavior is explicitly set in model
@@ -103,6 +121,7 @@ class EntityBehavior extends ModelBehavior {
 								default:
 									$entity = $this->entityCreate($assocModel);
 									$entity->map(array($alias => $aliasResult));
+									$entity->afterFind($assocModel);
 									break;
 							}
 						} else {

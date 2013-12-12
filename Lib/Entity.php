@@ -6,16 +6,68 @@ class Entity implements ArrayAccess {
 
 	protected $_alias;
 
+	protected $_modelName;
+
+	protected $_Model;
+
 /**
  * Constructor
+ *
+ * @param Model $model
+ * @param array $data
+ * @throws Exception
  */
-	public function __construct() {
-		// self mapping
+	public function __construct($model = null, $data = null) {
+		// set alias
 		if (!$this->_alias) {
 			$this->_alias = (preg_match('/^(.+)Entity$/', get_class($this)))
 				? substr(get_class($this), 0, -6)
 				: get_class($this);
 		}
+
+		// set model
+		if ($model) {
+			if (!($model instanceof Model)) {
+				throw new Exception('Model expected');
+			}
+			$this->_Model =& $model;
+		}
+
+		// set data
+		if ($data) {
+			$this->map($data);
+		}
+	}
+
+	public function __call($key, $params) {
+		if (method_exists($this, $key)) {
+			return call_user_func(array($this, $key));
+		} elseif ($this->isPublic($key)) {
+			return $this->get($key);
+		}
+		//@todo throw Exception
+	}
+
+	public function __get($key) {
+		if (method_exists($this, $key)) {
+			return call_user_func(array($this, $key));
+		} elseif ($this->isPublic($key)) {
+			return $this->get($key);
+		}
+		//@todo throw Exception
+	}
+
+	public function &getModel() {
+		if (!$this->_Model) {
+			if ($this->_modelName === false) {
+				throw new Exception('No model name set for Entity ' . get_class($this));
+			}
+			if ($this->_modelName === null) {
+				$this->_modelName = $this->_alias;
+			}
+			$this->_Model = ClassRegistry::init($this->_modelName);
+		}
+		return $this->_Model;
 	}
 
 /**
@@ -35,25 +87,8 @@ class Entity implements ArrayAccess {
 			unset($data[$this->_alias]);
 			$this->set($_data);
 		} else {
-			//
+			$this->set($data);
 		}
-
-		/*
-		foreach ($data as $entity => $entityData) {
-
-			if (!isset($this->_mapping[$entity])) {
-				throw new Exception(sprintf("Class %s is not mapped in %s", $entity, get_class($this)));
-			}
-
-			$mapping = $this->_mapping[$entity];
-
-			if ($mapping['relationship'] === 'self') {
-				$this->set($entityData);
-			} else {
-				//
-			}
-		}
-		*/
 
 		return $this;
 	}
@@ -165,6 +200,10 @@ class Entity implements ArrayAccess {
 			return $this->get(null);
 		}
 		return $this->get($offset);
+	}
+
+	public function afterFind(Model $model) {
+		// override in sub-classes
 	}
 
 	public static function keyCamelized($key) {

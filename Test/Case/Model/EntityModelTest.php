@@ -33,7 +33,7 @@ class EntityModelTest extends CakeTestCase {
 	public function testFindFirst() {
 		$result = $this->Model->find('first');
 		$this->assertTrue(is_object($result), 'Result is not an object');
-		$this->assertTrue(is_a($result, 'EntitySet', 'Result is not an instance of EntityModelEntity'));
+		$this->assertTrue(is_a($result, 'EntityData', 'Result is not an instance of EntityModelEntity'));
 
 		// magic access
 		$this->assertTrue(isset($result->EntityModel));
@@ -53,7 +53,7 @@ class EntityModelTest extends CakeTestCase {
 		$this->assertTrue(is_array($results), 'Result is not an object');
 		foreach ($results as $r) {
 			$this->assertTrue(is_object($r), 'Result is not an object');
-			$this->assertTrue(is_a($r, 'EntitySet', 'Result is not an instance of EntityModelEntity'));
+			$this->assertTrue(is_a($r, 'EntityData', 'Result is not an instance of EntityModelEntity'));
 
 			// magic access
 			$this->assertTrue(isset($r->EntityModel));

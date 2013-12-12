@@ -1,7 +1,7 @@
 <?php
-class EntitySet implements ArrayAccess {
+class EntityData implements ArrayAccess {
 
-	protected $_entities;
+	protected $_entities = array();
 
 	public function map($alias, $entity) {
 		$this->_entities[$alias] = $entity;
@@ -18,6 +18,7 @@ class EntitySet implements ArrayAccess {
 		if ($this->check($alias)) {
 			return $this->_entities[$alias];
 		}
+		return null;
 	}
 
 	public function __get($key) {
@@ -29,11 +30,11 @@ class EntitySet implements ArrayAccess {
 	}
 
 	public function offsetSet($offset, $value) {
-		return false; // Disabled
+		return; // Disabled
 	}
 
 	public function offsetUnset($offset) {
-		return false; // Disabled
+		return; // Disabled
 	}
 
 	public function offsetExists($offset) {
