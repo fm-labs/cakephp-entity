@@ -1,0 +1,18 @@
+{
+    "name": "fm-labs/cakephp-entity",
+    "description": "CakePHP Entity Plugin for CakePhp 2.x",
+    "type": "cakephp-plugin",
+    "minimum-stability": "stable",
+    "authors": [
+        {
+            "name": "fm-labs",
+            "email": "flowmotionlabs@gmail.com"
+        }
+    ],
+    "require": {
+        "composer/installers": "~1.0"
+    },
+    "extra": {
+        "installer-name": "Entity"
+    }
+}
