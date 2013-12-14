@@ -1,5 +1,6 @@
 <?php
 App::uses('Entity', 'Entity.Lib');
+App::uses('Model', 'Model');
 
 class EntityTest extends CakeTestCase {
 
@@ -118,6 +119,35 @@ class EntityTest extends CakeTestCase {
 		$this->assertEqual(isset($post['author_id']), true);
 		$this->assertEqual(isset($post['not_set']), false);
 	}
+
+	public function testGetModel() {
+		$post = new PostEntity();
+		$result = $post->getModel();
+		$this->assertTrue(is_a($result, 'AppModel'));
+	}
+
+	public function testGetModelUsingNoModelEntity() {
+		$entity = new NoModelEntity();
+		$this->expectException();
+		$entity->getModel();
+	}
+
+	public function testDependencyInjection() {
+		$Post = ClassRegistry::init('PostModel');
+		$post = new PostEntity($Post);
+		$this->assertTrue(is_a($post->getModel(), 'PostModel'));
+	}
+
+	public function testValidate() {
+		$Post = ClassRegistry::init('PostModel');
+		$Post->validator()->add('name', array('rule' => 'notEmpty'));
+
+		$post = new PostEntity($Post);
+		$post->validate();
+
+		$errors = $post->getValidationErrors();
+		$this->assertTrue(isset($errors['name']));
+	}
 }
 
 class PostEntity extends Entity {
@@ -147,4 +177,17 @@ class CommentEntity extends Entity {
 	public $postId;
 
 	public $text;
+}
+
+class NoModelEntity extends Entity {
+
+	protected $_useModel = false;
+}
+
+class PostModel extends Model {
+
+	public $alias = 'Post';
+
+	public $useTable = false;
+
 }

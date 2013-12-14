@@ -1,14 +1,19 @@
 <?php
 App::uses('Inflector', 'Utility');
 
-//TODO make abstract
+//@todo make abstract
 class Entity implements ArrayAccess {
+
+	//@todo implement me
+	protected $_plugin;
 
 	protected $_alias;
 
-	protected $_modelName;
+	protected $_useModel;
 
 	protected $_Model;
+
+	protected $_validationErrors = array();
 
 /**
  * Constructor
@@ -26,11 +31,15 @@ class Entity implements ArrayAccess {
 		}
 
 		// set model
-		if ($model) {
-			if (!($model instanceof Model)) {
-				throw new Exception('Model expected');
-			}
+		if ($model && $model instanceof Model) {
 			$this->_Model =& $model;
+			$this->_useModel = get_class($model);
+		} elseif ($model === null && $this->_useModel === null) {
+			$this->_useModel = $this->_alias;
+		} elseif ($model === false) {
+			$this->_useModel = false;
+		} elseif ($model) {
+			throw new Exception('$model must be an instance of Model');
 		}
 
 		// set data
@@ -59,13 +68,10 @@ class Entity implements ArrayAccess {
 
 	public function &getModel() {
 		if (!$this->_Model) {
-			if ($this->_modelName === false) {
+			if ($this->_useModel === false) {
 				throw new Exception('No model name set for Entity ' . get_class($this));
 			}
-			if ($this->_modelName === null) {
-				$this->_modelName = $this->_alias;
-			}
-			$this->_Model = ClassRegistry::init($this->_modelName);
+			$this->_Model = ClassRegistry::init($this->_useModel);
 		}
 		return $this->_Model;
 	}
@@ -165,6 +171,18 @@ class Entity implements ArrayAccess {
 	}
 
 /**
+ * A wrapper for toArray()
+ * Return data in CakePHP-data-style
+ * e.g. array(
+ * 	'EntityAlias' => array('entityKey' => '', 'etc' => '...')
+ * )
+ * @return array
+ */
+	public function toData() {
+		return array($this->_alias => $this->toArray());
+	}
+
+/**
  * isPublic method
  *
  * @param string $key
@@ -181,6 +199,28 @@ class Entity implements ArrayAccess {
 			throw $e;
 		}
 		return false;
+	}
+
+	public function validate() {
+		$this->_validationErrors = array();
+		if ($this->_useModel) {
+			$m =& $this->getModel();
+			$m->create();
+			$m->set(array($m->alias => $this->toArray()));
+			if (!$m->validates()) {
+				$this->_validationErrors = $m->validationErrors;
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public function getValidationErrors() {
+		return $this->_validationErrors;
+	}
+
+	public function afterFind(Model $model) {
+		// override in sub-classes
 	}
 
 	public function offsetSet($offset, $value) {
@@ -200,10 +240,6 @@ class Entity implements ArrayAccess {
 			return $this->get(null);
 		}
 		return $this->get($offset);
-	}
-
-	public function afterFind(Model $model) {
-		// override in sub-classes
 	}
 
 	public static function keyCamelized($key) {
